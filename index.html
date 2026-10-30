@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Method Match</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a research "fieldwork board" on graph paper; one working panel per round, sticky header with team, round stepper and score. */
+:root{
+  --paper:#F6F7FB; --grid:#E4E8F2; --ink:#16213E; --muted:#59627A; --line:#D5DBE8; --card:#FFFFFF;
+  --red:#C8102E; --red-soft:#FCE8EB; --on-red:#FFFFFF;
+  --blue:#2B4C9B; --blue-soft:#E7EDFB;
+  --good:#1D7A4B; --good-soft:#E2F4EA; --warn:#95600A; --warn-soft:#FBF0D8; --bad:#B42318; --bad-soft:#FDE8E6;
+  --display:"Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0E1322; --grid:#18203A; --ink:#EDF0F8; --muted:#A2AAC0; --line:#2A3352; --card:#161D33;
+  --red:#FF5C70; --red-soft:#3B1821; --on-red:#1A0509;
+  --blue:#93ACF2; --blue-soft:#1D2849;
+  --good:#5FD49B; --good-soft:#12301F; --warn:#F1B856; --warn-soft:#33270E; --bad:#FF8073; --bad-soft:#3A1714;
+  color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --paper:#0E1322; --grid:#18203A; --ink:#EDF0F8; --muted:#A2AAC0; --line:#2A3352; --card:#161D33;
+  --red:#FF5C70; --red-soft:#3B1821; --on-red:#1A0509;
+  --blue:#93ACF2; --blue-soft:#1D2849;
+  --good:#5FD49B; --good-soft:#12301F; --warn:#F1B856; --warn-soft:#33270E; --bad:#FF8073; --bad-soft:#3A1714;
+  color-scheme:dark; }
+
+*{box-sizing:border-box}
+body{background-color:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:28px 28px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--card)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+.bar{max-width:1100px;margin:0 auto;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
+.brand{font-family:var(--display);font-weight:800;font-size:1.35rem;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+.brand .dot{width:14px;height:14px;border-radius:50%;background:var(--red);box-shadow:8px 0 0 var(--blue)}
+.brand small{font-family:var(--body);font-weight:400;font-size:.85rem;color:var(--muted);margin-left:10px}
+.steps{display:flex;gap:6px;list-style:none;margin:0;padding:0;flex-wrap:wrap}
+.steps li{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:5px 10px;border-radius:999px;color:var(--muted);border:1px solid var(--line)}
+.steps li.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.steps li.done{color:var(--good);border-color:var(--good)}
+.score{margin-left:auto;font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums;background:var(--red);color:var(--on-red);padding:6px 14px;border-radius:999px}
+.score.bump{animation:bump .5s ease}
+@keyframes bump{40%{transform:scale(1.18)}}
+
+main{max-width:1100px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:22px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,4.5vw,3.1rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,2.6vw,1.9rem);font-weight:800}
+h3{font-size:1.15rem;font-weight:600}
+.eyebrow{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--red)}
+.lede{color:var(--muted);max-width:65ch;margin:6px 0 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;display:grid;gap:16px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}
+
+.btn{border:0;border-radius:999px;padding:11px 20px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--card);transition:transform .15s}
+.btn:hover{transform:translateY(-1px)}
+.btn.red{background:var(--red);color:var(--on-red)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn[disabled]{opacity:.4;cursor:not-allowed;transform:none}
+.btn.big{font-size:1.1rem;padding:14px 28px}
+
+label{font-weight:700;font-size:.95rem}
+input[type=text],textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--paper)}
+textarea{min-height:84px;resize:vertical}
+.hint{font-size:.88rem;color:var(--muted);font-weight:400}
+
+/* role cards */
+.role{border:1.5px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:4px;background:var(--paper)}
+.role b{font-family:var(--display);font-size:1.05rem}
+.role .who{font-family:var(--mono);font-size:.85rem;color:var(--red);font-weight:700}
+
+/* method cards */
+.mcard{border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;text-align:left;cursor:pointer;display:grid;gap:2px;width:100%}
+.mcard b{font-family:var(--display);font-size:1.02rem}
+.mcard span{font-size:.85rem;color:var(--muted)}
+.mcard.sel{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+.mcard.ok{border-color:var(--good);background:var(--good-soft)}
+.mcard.mid{border-color:var(--warn);background:var(--warn-soft)}
+.mcard.no{border-color:var(--bad);background:var(--bad-soft)}
+.tray{min-height:70px;border:2px dashed var(--line);border-radius:12px;padding:10px;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(min(100%,170px),1fr))}
+.bin{border-radius:var(--radius);padding:14px;display:grid;gap:10px;align-content:start;background:var(--blue-soft);border:2px solid transparent;cursor:pointer;min-height:220px;text-align:left}
+.bin.target{border-color:var(--blue)}
+.bin h3{color:var(--blue)}
+.bin p{margin:0;font-size:.88rem;color:var(--muted)}
+.bin .stack{display:grid;gap:8px}
+
+/* question card */
+.qcard{background:var(--red-soft);border-radius:var(--radius);padding:20px 22px;display:grid;gap:6px}
+.qcard .q{font-family:var(--display);font-weight:600;font-size:clamp(1.25rem,2.4vw,1.6rem);line-height:1.25}
+.curve{background:var(--warn-soft);border:1.5px solid var(--warn);border-radius:12px;padding:16px;display:grid;gap:8px}
+.curve .eyebrow{color:var(--warn)}
+
+/* timer */
+.timer{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.clock{font-family:var(--mono);font-weight:700;font-size:1.6rem;font-variant-numeric:tabular-nums;padding:4px 14px;border-radius:10px;background:var(--paper);border:1.5px solid var(--line);min-width:6ch;text-align:center}
+.clock.warn{color:var(--warn);border-color:var(--warn)}
+.clock.over{color:var(--on-red);background:var(--red);border-color:var(--red)}
+
+/* feedback */
+.fb{border-radius:12px;padding:14px 16px;display:grid;gap:4px}
+.fb.ok{background:var(--good-soft)} .fb.mid{background:var(--warn-soft)} .fb.no{background:var(--bad-soft)}
+.pill{display:inline-block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:999px}
+.pill.ok{background:var(--good);color:var(--card)} .pill.mid{background:var(--warn);color:var(--card)} .pill.no{background:var(--bad);color:var(--card)}
+table.pts{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+table.pts td{padding:8px 4px;border-bottom:1px solid var(--line)}
+table.pts td:last-child{text-align:right;font-family:var(--mono);font-weight:700}
+table.pts tr.total td{border-bottom:0;font-size:1.15rem}
+
+/* frame */
+.frame{background:var(--red-soft);border-radius:var(--radius);padding:clamp(18px,3vw,34px);display:grid;gap:14px;font-family:var(--display);font-size:clamp(1.2rem,2.6vw,1.75rem);line-height:1.35}
+.frame p{margin:0}
+.frame em{font-style:normal;color:var(--red);font-weight:800}
+.frame .blank{color:var(--muted);font-weight:600;font-style:italic}
+.rank{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,3.5vw,2.3rem);color:var(--red)}
+.ex{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;align-items:start}
+.num{width:34px;height:34px;border-radius:50%;background:var(--red);color:var(--on-red);display:grid;place-items:center;font-weight:700;font-family:var(--mono)}
+.ex p{margin:4px 0 0}
+.note{font-size:.9rem;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand"><span class="dot" aria-hidden="true"></span>Method Match<small id="teamLabel"></small></div>
+    <ol class="steps" id="steps" aria-label="Rounds"></ol>
+    <div class="score" id="score" aria-live="polite">0 pts</div>
+  </div>
+</header>
+<main id="app"></main>
+
+<script>
+const METHODS=[
+ {id:'int',name:'Interviews',d:'One-on-one conversations guided by open questions.'},
+ {id:'fg',name:'Focus groups',d:'A guided discussion among 5–8 participants.'},
+ {id:'dia',name:'Diaries',d:'Participants record experiences over days or weeks.'},
+ {id:'pv',name:'Photovoice',d:'Participants take photos and discuss what they show.'},
+ {id:'po',name:'Participant observation',d:'The researcher joins a setting and records what happens.'},
+ {id:'oe',name:'Online ethnography',d:'The researcher observes or takes part in an online community.'},
+ {id:'doc',name:'Document analysis',d:'Examining policies, reports, court records or letters.'},
+ {id:'med',name:'Media analysis',d:'Examining news, social media or film content.'}];
+const mName=id=>METHODS.find(m=>m.id===id).name;
+
+const BINS=[
+ {id:'A',t:'The researcher, with participants',d:'Data only exists because the researcher asked for it.'},
+ {id:'B',t:'No one: it happens anyway',d:'The researcher records something that would happen without them.'},
+ {id:'C',t:'It already exists',d:'The data was made before the research began, for another purpose.'}];
+const SORTKEY={
+ int:{ok:['A'],why:'Interviews only exist because you asked the questions.'},
+ fg:{ok:['A'],why:'You bring the group together and run the discussion.'},
+ dia:{ok:['A'],why:'Participants write them, but only because you asked. Most researchers count diaries as researcher-generated.',debate:true},
+ pv:{ok:['A'],why:'Participants take the photos for your study.'},
+ po:{ok:['B'],why:'The setting runs without you. Discuss: does your presence change what happens?',debate:true},
+ oe:{ok:['B','C'],why:'Watching live interaction counts as "happens anyway"; analysing an archive of old posts counts as "already exists". Both are defensible.',debate:true},
+ doc:{ok:['C'],why:'Policies and records were made for another purpose before your study.'},
+ med:{ok:['C'],why:'News and social media content already exists.'}};
+
+const QS=[
+ {c:'Crime and justice',q:'How do victims of identity theft describe the effects on their sense of security?',s:['int','dia'],w:['doc','med','po'],n:'You need people\'s own account of feeling unsafe. Interviews or diaries capture this; observation can\'t see a sense of security.'},
+ {c:'Crime and justice',q:'How do young people in regional towns talk about police in their community?',s:['fg','int'],w:['doc','dia'],n:'Focus groups capture how young people talk about police together, which is the question. Interviews work if the topic feels risky to discuss with peers.'},
+ {c:'Crime and justice',q:'How do people released from prison experience their first month back in the community?',s:['int','dia'],w:['med','doc','fg'],n:'Experience over a set period suits diaries or repeat interviews. Expect access and retention challenges, as life is often unstable in that first month.'},
+ {c:'Crime and justice',q:'How is cybercrime portrayed in Australian news coverage of data breaches?',s:['med'],w:['int','fg','dia','pv','po'],n:'The data already exists: news articles. Media analysis is the direct route. Interviewing journalists would answer a different question.'},
+ {c:'Crime and justice',q:'How do bank staff decide when a customer\'s transaction looks suspicious?',s:['int','po'],w:['pv','med'],n:'Decisions are best seen in practice (observation) or explained by staff (interviews). Getting access through a bank is the big hurdle.'},
+ {c:'Online life',q:'How do content moderators cope with exposure to harmful material?',s:['int','dia'],w:['med','doc','po'],n:'Coping is personal and ongoing, so interviews or diaries fit. Observation is unlikely: companies restrict access and NDAs are common.'},
+ {c:'Online life',q:'How do online gaming communities respond when a member is accused of harassment?',s:['oe'],w:['dia','pv'],n:'The response happens in the community itself, so online ethnography fits. Analysing archived threads also works. Consent in online spaces is the key ethical issue.'},
+ {c:'Online life',q:'How do women who use dating apps decide whether a match is safe to meet?',s:['int','dia'],w:['po','doc'],n:'Decisions happen privately over time, so diaries or interviews fit. Safety and privacy need careful handling.'},
+ {c:'Health and wellbeing',q:'How do university students describe the pressures that shape their drinking?',s:['fg','int'],w:['doc','med'],n:'Pressures are social, so focus groups show how students talk about them together. Interviews suit anyone uncomfortable speaking in a group.'},
+ {c:'Health and wellbeing',q:'How do people living with chronic pain experience consultations with GPs?',s:['int','dia'],w:['med','doc'],n:'Patients\' experiences suit interviews or diaries. Observing consultations is possible but needs health-ethics approval and consent from GPs and patients.'},
+ {c:'Health and wellbeing',q:'How do new parents decide which online health advice to trust?',s:['dia','int'],w:['doc','po'],n:'Trust decisions happen in the moment, so diaries catch them as they happen. Interviews let parents reflect afterwards.'},
+ {c:'Work and inequality',q:'How do gig-economy delivery riders experience safety on the job?',s:['int','pv'],w:['doc','med'],n:'Riders can show hazards through photovoice and explain them in interviews. Riding along (observation) is possible but raises your own safety issues.'},
+ {c:'Work and inequality',q:'How do international students find and secure rental housing?',s:['int','dia'],w:['po','med'],n:'Searching for housing is a process over weeks, so diaries or interviews fit. Focus groups can surface shared experiences.'},
+ {c:'Work and inequality',q:'How do people experiencing homelessness use public libraries?',s:['po','int'],w:['dia','med','doc'],n:'How people use a space is best seen there (observation), then explained in interviews. Power imbalance and consent need real care.'},
+ {c:'Community and environment',q:'How do residents of flood-affected towns talk about the decision to rebuild or leave?',s:['fg','int','pv'],w:['doc'],n:'A shared community decision suits focus groups; photovoice lets residents show what home means. Interviews capture individual choices.'},
+ {c:'Community and environment',q:'How do First Nations rangers describe their role in caring for Country?',s:['int','pv'],w:['doc','med'],n:'Interviews (or yarning) and photovoice fit, but the bigger question is who leads the research. It should be community-led and follow the AIATSIS Code of Ethics.'}];
+
+const CURVES=[
+ 'Your gatekeeper says no. The organisation you planned to recruit through won\'t help. How do you find participants now?',
+ 'Ethics review flags your topic as high risk for distress. What will you change or add?',
+ 'Several participants prefer a language other than English. How do you adapt?',
+ 'Your timeline is halved: six weeks instead of twelve. What do you cut or change?',
+ 'A participant asks to withdraw after you\'ve collected their data. What happens to it?',
+ 'Participants worry they could be identified from what they tell you. How do you protect them?',
+ 'Your recruitment only reaches people who are confident and well connected. Whose voice is missing, and how do you reach them?'];
+
+const ROLES=[
+ {r:'Card reader',t:'Reads every card and question aloud.'},
+ {r:'Scribe',t:'Types the group\'s answers on this screen.'},
+ {r:'Speaker',t:'Presents your answer in the final round.'},
+ {r:'Devil\'s advocate',t:'Argues for a different method before you lock in.'},
+ {r:'Ethics checker',t:'Asks "who could be harmed?" before anything is locked in.'},
+ {r:'Timekeeper',t:'Runs the timer and calls the 1-minute warning.'}];
+
+const STEPS=['Team','Sort','Match','Present'];
+const STEP_OF={setup:0,sort:1,example:2,match:2,present:3};
+const TIMES={sort:300,match:600,present:45};
+
+const fresh=()=>({screen:'setup',team:'',names:['','','','','',''],roles:null,
+  sort:{place:{},selected:null,locked:false,pts:0},
+  match:{qi:null,swaps:0,method:null,a1:'',a2:'',a3:'',why:'',cb:null,cbA:'',locked:false,pts:{fit:0,prompts:0,why:0,cb:0}}});
+let S;
+try{S=JSON.parse(localStorage.getItem('methodmatch'))||fresh()}catch(e){S=fresh()}
+if(!S||!S.sort||!S.match)S=fresh();
+const save=()=>{try{localStorage.setItem('methodmatch',JSON.stringify(S))}catch(e){}};
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const total=()=>S.sort.pts+S.match.pts.fit+S.match.pts.prompts+S.match.pts.why+S.match.pts.cb;
+const app=document.getElementById('app');
+
+/* ---------- timer ---------- */
+let T={key:null,left:0,total:0,run:false,id:null};
+function setTimer(key){ if(T.key===key)return; clearInterval(T.id); T={key,left:TIMES[key],total:TIMES[key],run:false,id:null}; }
+function tick(){ T.left--; paintClock(); if(T.left<=-599){clearInterval(T.id);T.run=false;} }
+function paintClock(){
+  const el=document.getElementById('clock'); if(!el)return;
+  const a=Math.abs(T.left), m=Math.floor(a/60), s=a%60;
+  el.textContent=(T.left<0?'+':'')+m+':'+String(s).padStart(2,'0');
+  el.className='clock'+(T.left<=0?' over':(T.left<=(T.key==='present'?10:60)?' warn':''));
+  const b=document.getElementById('tbtn'); if(b)b.textContent=T.run?'Pause':(T.left===T.total?'Start timer':'Resume');
+  const msg=document.getElementById('tmsg'); if(msg)msg.textContent=T.left<=0?'Time\'s up. Wrap up now.':'';
+}
+function timerHTML(){return `<div class="timer"><span class="clock" id="clock">0:00</span>
+ <button class="btn ghost" data-a="tToggle" id="tbtn">Start timer</button>
+ <button class="btn ghost" data-a="tReset">Reset</button><span class="hint" id="tmsg" aria-live="polite"></span></div>`;}
+
+/* ---------- header ---------- */
+let lastScore=0;
+function paintHeader(){
+  document.getElementById('steps').innerHTML=STEPS.map((s,i)=>{const cur=STEP_OF[S.screen];
+    return `<li class="${i===cur?'on':i<cur?'done':''}">${i+1} ${s}</li>`}).join('');
+  document.getElementById('teamLabel').textContent=S.team?'· '+S.team:'';
+  const sc=document.getElementById('score'), t=total(); sc.textContent=t+' pts';
+  if(t!==lastScore){sc.classList.remove('bump');void sc.offsetWidth;sc.classList.add('bump');lastScore=t;}
+}
+
+/* ---------- screens ---------- */
+function vSetup(){
+  const roleCards=S.roles?S.roles.map(x=>`<div class="role"><span class="who">${esc(x.who)}</span><b>${esc(x.r)}</b><span class="hint">${esc(x.t)}</span></div>`).join(''):'';
+  return `<section><p class="eyebrow">Qualitative methods · group challenge</p><h1>Pick the right tool for the question</h1>
+  <p class="lede">Three rounds, about 22 minutes. Sort the methods, match one to a real research question, then pitch it to the class in 45 seconds. Every choice earns points.</p></section>
+  <section class="panel"><h2>Your team</h2>
+   <div><label for="team">Team name</label><input type="text" id="team" data-f="team" maxlength="40" placeholder="e.g. The Gatekeepers" value="${esc(S.team)}"></div>
+   <div><label>Members (5–6, first names are fine)</label>
+    <div class="grid g3" style="margin-top:6px">${S.names.map((n,i)=>`<input type="text" id="n${i}" data-n="${i}" maxlength="24" placeholder="Member ${i+1}${i===5?' (optional)':''}" value="${esc(n)}">`).join('')}</div></div>
+   <div class="row"><button class="btn" data-a="deal">${S.roles?'Re-deal roles':'Deal roles'}</button><span class="hint">Leave names blank to deal numbered roles.</span></div>
+   ${S.roles?`<div class="grid g3">${roleCards}</div>`:''}
+  </section>
+  <div class="row"><button class="btn red big" data-a="go" data-to="sort" ${S.roles?'':'disabled'}>Start round 1</button>${S.roles?'':'<span class="hint">Deal roles to start.</span>'}</div>`;
+}
+
+function vSort(){
+  const st=S.sort, unplaced=METHODS.filter(m=>!st.place[m.id]);
+  const cardHTML=m=>{let cls='mcard';
+    if(st.locked){const k=SORTKEY[m.id], p=st.place[m.id]; cls+=k.ok.includes(p)?(k.debate?' mid':' ok'):' no';}
+    else if(st.selected===m.id)cls+=' sel';
+    return `<button class="${cls}" data-a="pick" data-id="${m.id}" ${st.locked?'disabled':''} aria-pressed="${st.selected===m.id}"><b>${m.name}</b><span>${m.d}</span></button>`;};
+  const fb=st.locked?`<section class="panel"><h2>How you sorted</h2>
+    <div class="grid g2">${METHODS.map(m=>{const k=SORTKEY[m.id],p=st.place[m.id],ok=k.ok.includes(p);
+     const cls=ok?(k.debate?'mid':'ok'):'no';
+     return `<div class="fb ${cls}"><div class="row"><b>${m.name}</b><span class="pill ${cls}">${ok?(k.debate?'Up for debate':'Agreed'):'Rethink'}</span></div>
+      <span>${k.why}</span>${!ok?`<span class="hint">Most researchers put this in: ${k.ok.map(b=>BINS.find(x=>x.id===b).t).join(' or ')}.</span>`:''}</div>`}).join('')}</div>
+    <p class="note"><b>Devil's advocate:</b> pick one yellow card and argue for a different column. Then the ethics checker gets the last word.</p>
+    <div class="row"><button class="btn red big" data-a="go" data-to="example">Next: worked example</button></div></section>`:'';
+  return `<section class="row" style="justify-content:space-between"><div><p class="eyebrow">Round 1 · 5 minutes</p><h1>Who creates the data?</h1>
+   <p class="lede">Tap a method card, then tap the column it belongs in. The card reader reads each card aloud; agree as a group before you place it.</p></div>${timerHTML()}</section>
+   <section class="panel"><h3>Method cards ${unplaced.length?`<span class="hint">(${unplaced.length} left)</span>`:''}</h3>
+    <div class="tray" data-a="unplace">${unplaced.map(cardHTML).join('')||'<span class="hint">All cards placed. Tap a placed card to move it.</span>'}</div></section>
+   <section class="grid g3">${BINS.map(b=>`<div class="bin ${st.selected&&!st.locked?'target':''}" data-a="drop" data-bin="${b.id}" role="button" tabindex="0" aria-label="Place in: ${b.t}">
+     <h3>${b.t}</h3><p>${b.d}</p><div class="stack">${METHODS.filter(m=>st.place[m.id]===b.id).map(cardHTML).join('')}</div></div>`).join('')}</section>
+   ${st.locked?fb:`<div class="row"><button class="btn red big" data-a="lockSort" ${unplaced.length?'disabled':''}>Lock in our sort</button>
+     ${unplaced.length?'<span class="hint">Place all eight cards to lock in.</span>':''}</div>`}`;
+}
+
+function vExample(){
+  const ex=[['What do we need to know?','How people explain the scam to themselves: trust, shame, loneliness and blame.'],
+   ['Method, and with whom?','In-depth interviews with older adults who reported a romance scam, recruited through victim support services.'],
+   ['Why not another method?','A focus group would make shame harder to talk about in front of strangers.'],
+   ['One challenge','The topic is distressing and stigmatised, so we would need a trauma-informed approach and referrals to support.']];
+  return `<section><p class="eyebrow">Before round 2 · tutor demo</p><h1>Watch how it's done</h1>
+   <p class="lede">Your tutor will talk through this example. Notice that every answer goes back to the question.</p></section>
+   <section class="qcard"><span class="eyebrow">Example question</span><span class="q">How do older adults who lost money to a romance scam make sense of what happened?</span></section>
+   <section class="panel"><div class="ex">${ex.map((e,i)=>`<span class="num">${i+1}</span><div><b>${e[0]}</b><p>${e[1]}</p></div>`).join('')}</div></section>
+   <div class="row"><button class="btn red big" data-a="go" data-to="match">Start round 2</button></div>`;
+}
+
+function vMatch(){
+  const m=S.match, q=m.qi!=null?QS[m.qi]:null;
+  if(!q){return `<section class="row" style="justify-content:space-between"><div><p class="eyebrow">Round 2 · 10 minutes</p><h1>Draw your research question</h1>
+    <p class="lede">Draw a random question, or pick one from the list if your tutor has given you a shortlist.</p></div>${timerHTML()}</section>
+    <section class="panel"><div class="row"><button class="btn red big" data-a="draw">Draw a question</button></div>
+     <div><label for="qpick">Or choose from the list</label>
+      <select id="qpick" data-a="choose"><option value="">Select a question…</option>${QS.map((x,i)=>`<option value="${i}">Q${i+1}. ${esc(x.q)}</option>`).join('')}</select></div></section>`;}
+  const dis=m.locked?'disabled':'';
+  const ta=(id,lab,hint)=>`<div><label for="${id}">${lab} <span class="hint">${hint}</span></label><textarea id="${id}" data-f="${id}" ${dis}>${esc(m[id])}</textarea></div>`;
+  let fb='';
+  if(m.locked){const fit=q.s.includes(m.method)?'ok':q.w.includes(m.method)?'no':'mid';
+    const lab={ok:'Strong fit',mid:'Could work',no:'Weak fit'}[fit];
+    fb=`<section class="panel"><h2>Verdict</h2>
+     <div class="fb ${fit}"><div class="row"><b>${mName(m.method)}</b><span class="pill ${fit}">${lab}</span></div><span>${q.n}</span>
+      <span class="hint">Strong fits for this question: ${q.s.map(mName).join(', ')}.</span></div>
+     <table class="pts"><tr><td>Method fit</td><td>+${m.pts.fit}</td></tr><tr><td>Three prompts answered</td><td>+${m.pts.prompts}</td></tr>
+      <tr><td>"Why not another method?"</td><td>+${m.pts.why}</td></tr><tr><td>Curveball handled</td><td>+${m.pts.cb}</td></tr></table>
+     <div class="row"><button class="btn red big" data-a="go" data-to="present">Go to the pitch</button></div></section>`;}
+  return `<section class="row" style="justify-content:space-between"><div><p class="eyebrow">Round 2 · 10 minutes</p><h1>Match a method</h1></div>${timerHTML()}</section>
+   <section class="qcard"><span class="eyebrow">Q${m.qi+1} · ${esc(q.c)}</span><span class="q">${esc(q.q)}</span>
+    ${!m.locked&&m.swaps<1?'<div><button class="btn ghost" data-a="swap">Swap question (one free swap)</button></div>':''}</section>
+   <section class="panel"><h2>Choose one method</h2>
+    <div class="grid g4">${METHODS.map(x=>`<button class="mcard ${m.method===x.id?'sel':''}" data-a="method" data-id="${x.id}" ${dis} aria-pressed="${m.method===x.id}"><b>${x.name}</b><span>${x.d}</span></button>`).join('')}</div></section>
+   <section class="panel"><h2>Justify it</h2>
+    ${ta('a1','1. What do we need to know?','Experiences? Meanings? Behaviour? How something is talked about?')}
+    ${ta('a2','2. Who or what would we collect data from?','Be specific, and check you could actually reach them.')}
+    ${ta('a3','3. One limitation or ethical issue','Ethics checker: who could be harmed, and what would you do?')}
+    ${ta('why','Bonus: why not another method?','Devil\'s advocate: name one method you rejected and why.')}
+   </section>
+   <section class="panel"><h2>Curveball</h2>
+    ${m.cb==null?`<p class="lede" style="margin:0">Real research never goes to plan. Once you've chosen a method, draw a curveball and adapt.</p>
+      <div><button class="btn" data-a="curve" ${m.method&&!m.locked?'':'disabled'}>Draw a curveball</button></div>`
+     :`<div class="curve"><span class="eyebrow">Curveball</span><b>${esc(CURVES[m.cb])}</b>
+      <label for="cbA" class="hint">Your response</label><textarea id="cbA" data-f="cbA" ${dis}>${esc(m.cbA)}</textarea></div>`}
+   </section>
+   ${m.locked?fb:`<div class="row"><button class="btn red big" data-a="lockMatch" ${m.method?'':'disabled'}>Lock in our answer</button><span class="hint">${m.method?'You can\'t change answers after locking in.':'Choose a method to lock in.'}</span></div>`}`;
+}
+
+function vPresent(){
+  const m=S.match,q=QS[m.qi]; const t=total();
+  const rank=t>=150?'Principal investigator':t>=110?'Research fellow':t>=70?'Research assistant':'Honours student';
+  const fill=(v,ph)=>v&&v.trim()?`<em>${esc(v.trim().replace(/[.\s]+$/,''))}</em>`:`<span class="blank">(${ph})</span>`;
+  const speaker=S.roles?(S.roles.find(r=>r.r==='Speaker')||{}).who:'';
+  return `<section class="row" style="justify-content:space-between"><div><p class="eyebrow">Round 3 · 45 seconds</p><h1>Pitch it to the class</h1>
+   <p class="lede">${speaker?esc(speaker)+', you\'re up. ':''}Read the frame aloud. Fill any gaps as you speak.</p></div>${timerHTML()}</section>
+   <section class="frame">
+    <p>Our question is <em>Q${m.qi+1}: ${esc(q.q.replace(/\?$/,''))}</em>?</p>
+    <p>We'd use <em>${esc(mName(m.method))}</em> with ${fill(m.a2,'who or what')},</p>
+    <p>because it captures ${fill(m.a1,'what you need to know')}.</p>
+    <p>One challenge is ${fill(m.a3,'limitation or ethical issue')}${m.cb!=null&&m.cbA.trim()?`, and if ${esc(CURVES[m.cb].split(/[.?]/)[0].toLowerCase())}, we'd ${fill(m.cbA,'')}`:''}.</p>
+   </section>
+   <section class="grid g2">
+    <div class="panel"><span class="eyebrow">Your rank</span><span class="rank">${rank}</span>
+     <span class="hint">Ranks: Honours student · Research assistant (70+) · Research fellow (110+) · Principal investigator (150+). Maximum 180.</span></div>
+    <div class="panel"><h3>Score breakdown</h3><table class="pts">
+     <tr><td>Round 1: sort</td><td>${S.sort.pts}</td></tr><tr><td>Round 2: method fit</td><td>${m.pts.fit}</td></tr>
+     <tr><td>Round 2: prompts, bonus and curveball</td><td>${m.pts.prompts+m.pts.why+m.pts.cb}</td></tr>
+     <tr class="total"><td><b>Total</b></td><td>${t}</td></tr></table></div></section>
+   <div class="row"><button class="btn" data-a="again">Try another question</button><button class="btn ghost" data-a="newgame">New game</button><span class="hint" id="confirmMsg"></span></div>`;
+}
+
+const VIEWS={setup:vSetup,sort:vSort,example:vExample,match:vMatch,present:vPresent};
+function render(scrollTop){
+  if(TIMES[S.screen])setTimer(S.screen); else {clearInterval(T.id);T={key:null,left:0,total:0,run:false,id:null};}
+  app.innerHTML=VIEWS[S.screen](); paintHeader(); paintClock(); save();
+  if(scrollTop)window.scrollTo({top:0,behavior:'auto'});
+}
+
+/* ---------- actions ---------- */
+function score(){
+  const st=S.sort; st.pts=METHODS.reduce((a,m)=>a+(SORTKEY[m.id].ok.includes(st.place[m.id])?10:0),0);
+}
+function scoreMatch(){
+  const m=S.match,q=QS[m.qi]; const len=s=>(s||'').trim().length;
+  m.pts.fit=q.s.includes(m.method)?40:q.w.includes(m.method)?5:20;
+  m.pts.prompts=['a1','a2','a3'].reduce((a,k)=>a+(len(m[k])>=15?10:0),0);
+  m.pts.why=len(m.why)>=15?15:0; m.pts.cb=m.cb!=null&&len(m.cbA)>=15?15:0;
+}
+let confirmNew=false;
+app.addEventListener('click',e=>{
+  const el=e.target.closest('[data-a]'); if(!el||el.disabled)return; const a=el.dataset.a;
+  if(a==='unplace'&&e.target.closest('.mcard'))return;
+  const st=S.sort,m=S.match;
+  switch(a){
+   case 'deal':{const who=S.names.map((n,i)=>n.trim()||('Member '+(i+1)));
+     const count=Math.max(5,S.names.filter(n=>n.trim()).length||6); const people=who.slice(0,Math.min(6,Math.max(5,count)));
+     let roles=ROLES.slice(0,people.length===5?5:6).map(x=>({...x}));
+     if(people.length===5){roles[0]={r:'Card reader + timekeeper',t:'Reads every card aloud and runs the timer.'};}
+     const sh=[...people].sort(()=>Math.random()-.5); S.roles=roles.map((r,i)=>({...r,who:sh[i]})); render(); break;}
+   case 'go': S.screen=el.dataset.to; render(true); break;
+   case 'tToggle': if(T.run){clearInterval(T.id);T.run=false;}else{T.run=true;T.id=setInterval(tick,1000);} paintClock(); break;
+   case 'tReset': clearInterval(T.id); T.run=false; T.left=T.total; paintClock(); break;
+   case 'pick': if(st.locked)return; e.stopPropagation(); st.selected=st.selected===el.dataset.id?null:el.dataset.id; render(); break;
+   case 'drop': if(st.locked||!st.selected)return; st.place[st.selected]=el.dataset.bin; st.selected=null; render(); break;
+   case 'unplace': if(st.locked||!st.selected)return; delete st.place[st.selected]; st.selected=null; render(); break;
+   case 'lockSort': st.locked=true; st.selected=null; score(); render(); break;
+   case 'draw': {const pool=QS.map((_,i)=>i).filter(i=>i!==m.qi); m.qi=pool[Math.floor(Math.random()*pool.length)]; render(); break;}
+   case 'swap': m.swaps++; {const pool=QS.map((_,i)=>i).filter(i=>i!==m.qi); m.qi=pool[Math.floor(Math.random()*pool.length)];} render(); break;
+   case 'method': m.method=el.dataset.id; render(); break;
+   case 'curve': m.cb=Math.floor(Math.random()*CURVES.length); render(); break;
+   case 'lockMatch': m.locked=true; scoreMatch(); render(); break;
+   case 'again': {const keepSwaps=0; S.match=fresh().match; S.match.swaps=keepSwaps; S.screen='match'; T.key=null; render(true); break;}
+   case 'newgame': if(!confirmNew){confirmNew=true; el.textContent='Tap again to reset everything'; return;}
+     confirmNew=false; S=fresh(); T.key=null; render(true); break;
+  }
+});
+app.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.target.matches('.bin')){e.preventDefault();e.target.click();} });
+app.addEventListener('change',e=>{ if(e.target.dataset.a==='choose'&&e.target.value!==''){S.match.qi=+e.target.value; render();} });
+app.addEventListener('input',e=>{ const t=e.target;
+  if(t.dataset.f==='team'){S.team=t.value; paintHeader(); save(); return;}
+  if(t.dataset.n!=null){S.names[+t.dataset.n]=t.value; save(); return;}
+  if(t.dataset.f&&t.dataset.f in S.match){S.match[t.dataset.f]=t.value; save();} });
+
+window.claude?.hot?.snapshot?.(()=>S);
+const start=data=>{ if(data&&data.screen&&data.sort)S=data; lastScore=total(); render(); };
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? null);
+</script>
+
+</body>
+</html>
